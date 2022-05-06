@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div id="container">
+    <ul class="ulName">
+    </ul>
+    <ul class="ulTyping">
+
+    </ul>
+    <form id="form" action="">
+      <label for="myInput"></label>
+      <input id="input" autocomplete="off" name="myInput" maxlength="30" /><button>Send</button>
+    </form>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+    var ul = document.querySelector('ul');
+    var form = document.getElementById('form');
+    var input = document.getElementById('input');
+
+    //表單監聽
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (input.value[0] === '/' && input.value[1] === 'r') {
+        const msg = input.value.slice(2)
+        socket.emit('secretTalk', msg);
+        input.value = '';
+      } else {
+        socket.emit('chatMessage', input.value, (response) => {
+          console.log(response.status); // ok
+        });;
+        input.value = '';
+      }
+    });
+    //按鈕監聽
+    const myInput = document.querySelector('input')
+    myInput.addEventListener('input', (el) => {
+      if (myInput.value.length >= 30) {
+        myInput.style.background = "rgba(255, 0, 0, 0.295)"
+        myInput.style.boxShadow = "0 0 10px 5px rgba(255, 0, 0, 0.521)"
+      }
+      else {
+        myInput.style.background = ""
+        myInput.style["boxShadow"] = ""
+      }
+      socket.emit('userTyping', true);
+    })
+    myInput.addEventListener('focusout', () => {
+      socket.emit('userTypeEnd', true)
+    })
+
+    //用戶聊天功能
+    socket.on('chatMessage', function (msg) {
+      var item = document.createElement('li');
+      item.textContent = msg;
+      ul.appendChild(item);
+      ul.scrollTo(0, ul.scrollHeight);
+    });
+    //用戶離線
+    socket.on('userDisconnected', function (msg) {
+      var item = document.createElement('li');
+      item.textContent = msg + " 已離開👋";
+      ul.appendChild(item);
+      ul.scrollTo(0, ul.scrollHeight);
+    });
+    //新用戶取得目前在線上用戶資訊
+    socket.on('currUserOnline', function (msg) {
+      var item = document.createElement('li');
+      item.textContent = msg + " 上限囉🙆‍♂️";
+      ul.appendChild(item);
+      ul.scrollTo(0, ul.scrollHeight);
+    });
+    //舊用戶取得新用戶上限資訊
+    socket.on('newUserOnline', function (msg) {
+      var item = document.createElement('li');
+      item.textContent = msg + " 上限囉🙆‍♂️";
+      ul.appendChild(item);
+      ul.scrollTo(0, ul.scrollHeight);
+    });
+    //取得隨機中文名字
+    socket.on('selfName', function (msg) {
+      var item = document.querySelector('label')
+      item.textContent = msg;
+      ul.scrollTo(0, ul.scrollHeight);
+    });
+    //用戶密語功能
+    socket.on('secretTalk', function (msg) {
+      var item = document.createElement('li');
+      item.textContent = msg;
+      ul.appendChild(item);
+      ul.scrollTo(0, ul.scrollHeight);
+    });
+    //用戶正在輸入訊息
+    socket.on('userTyping', function (msg) {
+      if (document.querySelector(`.${msg}`)) {
+        console.log("輸入中")
+      }
+      else {
+        var ul = document.querySelector('.ulTyping')
+        var item = document.createElement('li');
+        item.classList.add(msg)
+        item.textContent = msg + " 正在輸入中...";
+        ul.appendChild(item)
+      }
+    });
+    //用戶輸入結束
+    socket.on('userTypeEnd', function (msg) {
+      document.querySelector(`.${msg}`).remove()
+    });
+    //Error
+    socket.on('Error', function (msg) {
+      if (msg === "maxLength") {
+        alert("error")
+      }
+    });
+  </script>
+</body>
+
+</html>
